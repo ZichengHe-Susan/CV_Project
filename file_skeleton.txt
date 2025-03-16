@@ -1,0 +1,16 @@
+video-captioning/
+├── config.py             # Configuration parameters
+├── data/                 # Data directory
+│   ├── preprocess.py     # Data preprocessing scripts
+│   └── dataloader.py     # Dataset and DataLoader classes
+├── models/
+│   ├── c3d_model.py      # C3D encoder model
+│   ├── clip_model.py     # CLIP encoder model
+│   ├── gpt2_decoder.py   # GPT-2 decoder implementation
+│   └── fusion.py         # Fusion layers between encoder and decoder
+├── utils/
+│   ├── beam_search.py    # Beam search implementation
+│   └── metrics.py        # Evaluation metrics (BLEU)
+├── train.py              # Training script
+├── evaluate.py           # Evaluation script
+└── inference.py          # Inference for new videos
