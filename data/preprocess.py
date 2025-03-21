@@ -120,5 +120,5 @@ if __name__ == "__main__":
     # Example usage:
     # python preprocess.py
     # Make sure your config points to correct directories
-    preprocess_c3d_features("video", "data/c3d_features")
-    preprocess_clip_features("video", "data/clip_features")
+    preprocess_c3d_features(Config.VIDEO_DIR, Config.PROCESSED_C3D_FEATS)
+    preprocess_clip_features(Config.VIDEO_DIR, Config.PROCESSED_CLIP_FEATS)
