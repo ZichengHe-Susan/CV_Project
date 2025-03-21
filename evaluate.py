@@ -15,8 +15,8 @@ from utils.beam_search import beam_search_decoding
 
 # Example dummy annotations (video_id, ref_caption)
 VAL_ANNOTATIONS = [
-    ("video1", "a dog is running on the beach"),
-    ("video2", "two people are dancing"),
+    ("video0", "a dog is running on the beach"),
+    ("video1", "two people are dancing"),
     # ...
 ]
 

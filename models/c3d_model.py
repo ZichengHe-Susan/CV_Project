@@ -18,8 +18,8 @@ class C3DEncoder(nn.Module):
         self.conv3a = nn.Conv3d(128, 256, kernel_size=(3,3,3), padding=1)
         self.conv3b = nn.Conv3d(256, 256, kernel_size=(3,3,3), padding=1)
         self.pool3 = nn.MaxPool3d(kernel_size=(2,2,2), stride=(2,2,2))
-        
-        self.fc4 = nn.Linear(256*2*14*14, 2048)
+
+        self.fc4 = nn.Linear(256*4*14*14, 2048)
         self.fc5 = nn.Linear(2048, 15360)
         self.relu = nn.ReLU(inplace=True)
         

@@ -1,0 +1,9 @@
+/venv
+#except data/c3d_features, exclude everything in data folder
+/data/*
+!/data/dataloader.py
+!/data/preprocess.py
+/video
+/checkpoints
+#exclude all the directories named __pycache__
+__pycache__/

@@ -35,7 +35,7 @@ class Config:
     # File/Folder Paths
     ########################
     DATA_DIR = "data"         # root data directory
-    VIDEO_DIR = "raw_videos"  # where raw videos might reside
+    VIDEO_DIR = "/video"  # where raw videos might reside
     OUTPUT_DIR = "checkpoints"
     
     # Preprocessed feature paths (CLIP or C3D)

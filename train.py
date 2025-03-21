@@ -16,8 +16,8 @@ from models.gpt2_decoder import GPT2Decoder
 # Example dummy annotations
 # Each item: (video_id_without_extension, "caption text")
 TRAIN_ANNOTATIONS = [
-    ("video1", "a dog is running on the beach"),
-    ("video2", "two people are dancing"),
+    ("video0", "a dog is running on the beach"),
+    ("video1", "two people are dancing"),
     # ...
 ]
 
@@ -38,6 +38,7 @@ def train_one_epoch(loader, c3d_encoder, clip_encoder, fusion_model, gpt2_decode
             # shape: (B, 3, 16, 112, 112)
             # Actually from DataLoader, shape is (B, 16, 3, 112, 112)
             # might need to permute
+            print("video_feats shape:", video_feats.shape)
             video_feats = video_feats.permute(0, 2, 1, 3, 4)  # => (B, 3, 16, 112, 112)
             enc_out = c3d_encoder(video_feats)  # (B, 15360)
             context_embeds = fusion_model(enc_out)  # (B, T_ctx, 768)
