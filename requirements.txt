@@ -1,0 +1,9 @@
+clip-by-openai
+nltk
+numpy
+Pillow
+torch      
+torchvision
+tqdm
+transformers
+opencv-python

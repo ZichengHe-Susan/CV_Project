@@ -13,7 +13,7 @@ from models.clip_model import CLIPEncoder
 from models.fusion import SimpleFusion
 from models.gpt2_decoder import GPT2Decoder
 from models.clip_image_encoder import CLIPImageEncoder
-from data.coco.train.coco_train_annotations import TRAIN_ANNOTATIONS_COCO
+from data.coco.train.train_annotations_coco import TRAIN_ANNOTATIONS_COCO
 
 
 # Example dummy annotations

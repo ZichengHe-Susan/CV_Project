@@ -12,7 +12,7 @@ from models.fusion import SimpleFusion
 from models.gpt2_decoder import GPT2Decoder
 from utils.metrics import calculate_bleu
 from utils.beam_search import beam_search_decoding
-from data.coco.val.coco_val_annotations_coco_annotations import VAL_ANNOTATIONS_COCO
+from data.coco.val.val_annotations_coco import VAL_ANNOTATIONS_COCO
 # Example dummy annotations (video_id, ref_caption)
 VAL_ANNOTATIONS = VAL_ANNOTATIONS_COCO
 USE_C3D  = False        
