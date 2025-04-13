@@ -1,7 +1,7 @@
 # video-captioning/utils/metrics.py
 
 import nltk
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
 def calculate_bleu(reference, hypothesis):
     """
@@ -9,10 +9,13 @@ def calculate_bleu(reference, hypothesis):
     hypothesis: list of tokens
     Returns BLEU-4 score (float)
     """
-    if isinstance(reference[0], str):
-        # single reference
-        reference = [reference]
-    return sentence_bleu(reference, hypothesis)
+    smoothie = SmoothingFunction()
+    return sentence_bleu(
+        [reference],
+        hypothesis,
+        weights=(0.25, 0.25, 0.25, 0.25),
+        smoothing_function=smoothie.method5
+    )
 
 def calculate_bleu_corpus(references, hypotheses):
     """

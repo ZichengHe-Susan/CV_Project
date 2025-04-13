@@ -12,13 +12,11 @@ from models.fusion import SimpleFusion
 from models.gpt2_decoder import GPT2Decoder
 from utils.metrics import calculate_bleu
 from utils.beam_search import beam_search_decoding
-
+from data.coco.val.coco_val_annotations_coco_annotations import VAL_ANNOTATIONS_COCO
 # Example dummy annotations (video_id, ref_caption)
-VAL_ANNOTATIONS = [
-    ("video1", "a dog is running on the beach"),
-    ("video2", "two people are dancing"),
-    # ...
-]
+VAL_ANNOTATIONS = VAL_ANNOTATIONS_COCO
+USE_C3D  = False        
+USE_CLIP = True
 
 def generate_caption_c3d(c3d_encoder, fusion_model, gpt2_decoder, video_feats, tokenizer, device, beam_width=1):
     # video_feats shape: (1, 16, 3, 112, 112)
@@ -39,7 +37,8 @@ def generate_caption_c3d(c3d_encoder, fusion_model, gpt2_decoder, video_feats, t
     else:
         # use GPT-2 generate with greedy
         gen_ids = gpt2_decoder.generate(
-            context_embeds,
+            inputs_embeds=context_embeds,
+            attention_mask=torch.ones((context_embeds.size(0), context_embeds.size(1)), device=device),
             max_length=Config.MAX_SEQ_LEN,
             num_beams=1
         )
@@ -80,29 +79,38 @@ def main():
     # Create model instances
     c3d_encoder = None
     clip_encoder = None
+    image_encoder = None
     # set to True or False depending on which you used
-    USE_C3D = True
+
     
     if USE_C3D:
         c3d_encoder = C3DEncoder().to(device)
         c3d_encoder.load_state_dict(checkpoint["c3d_encoder"])
-    else:
-        clip_encoder = CLIPEncoder(freeze_clip=Config.FREEZE_CLIP).to(device)
-        clip_encoder.load_state_dict(checkpoint["clip_encoder"])
-    
-    fusion_model = SimpleFusion(context_tokens=Config.CONTEXT_TOKENS).to(device)
+        in_dim = 15360
+        image_encoder = None
+    else:                       # single‑image CLIP
+        from models.clip_image_encoder import CLIPImageEncoder
+        image_encoder = CLIPImageEncoder(freeze_clip=Config.FREEZE_CLIP).to(device)
+        if "image_encoder" in checkpoint:          # only saved if trainable
+            image_encoder.load_state_dict(checkpoint["image_encoder"])
+        in_dim = 768
+        c3d_encoder = None
+
+    fusion_model = SimpleFusion(in_dim=in_dim,
+                                context_tokens=Config.CONTEXT_TOKENS).to(device)
     fusion_model.load_state_dict(checkpoint["fusion_model"])
+    
     
     gpt2_decoder = GPT2Decoder().to(device)
     gpt2_decoder.load_state_dict(checkpoint["gpt2_decoder"])
     
     # Prepare dataset/loader for evaluation
     val_loader = get_dataloader(
-        feature_dir=Config.PROCESSED_C3D_FEATS if USE_C3D else Config.PROCESSED_CLIP_FEATS,
-        annotations=VAL_ANNOTATIONS,
+        feature_dir=Config.IMAGE_DIR_TEST,      # same folder as training
+        annotations=VAL_ANNOTATIONS,       # replace with real val list
         tokenizer=tokenizer,
-        batch_size=1,   # evaluate 1 by 1 for simplicity
-        shuffle=False
+        batch_size=1,
+        shuffle=False,
     )
     
     references = []
@@ -127,15 +135,17 @@ def main():
                 beam_width=5  # or 1 for greedy
             )
         else:
-            hyp_str = generate_caption_clip(
-                clip_encoder,
-                fusion_model,
-                gpt2_decoder,
-                video_feats,
-                tokenizer,
-                device,
-                beam_width=5
+            img_feats = video_feats.unsqueeze(1)        # (B, 1, 3, 224, 224)
+            enc_out   = image_encoder(img_feats.squeeze(1))  # (1, 1, 768)
+
+            context   = fusion_model(enc_out)           # (1, T_ctx, 768)
+            gen_ids = gpt2_decoder.generate(
+                inputs_embeds=context,
+                attention_mask=torch.ones((context.size(0), context.size(1)), device=device),
+                max_length=Config.MAX_SEQ_LEN,
+                num_beams=5
             )
+            hyp_str   = tokenizer.decode(gen_ids[0], skip_special_tokens=True)
         
         hypotheses.append(hyp_str.split())
     

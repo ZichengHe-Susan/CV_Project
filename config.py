@@ -37,6 +37,8 @@ class Config:
     DATA_DIR = "data"         # root data directory
     VIDEO_DIR = "raw_videos"  # where raw videos might reside
     OUTPUT_DIR = "checkpoints"
+    IMAGE_DIR = "data/coco/train"  # where COCO dataset is located
+    IMAGE_DIR_TEST = "data/coco/val"  # where COCO test set is located
     
     # Preprocessed feature paths (CLIP or C3D)
     PROCESSED_CLIP_FEATS = "data/clip_features"

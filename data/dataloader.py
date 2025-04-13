@@ -1,9 +1,22 @@
 # video-captioning/data/dataloader.py
-
 import os
+from pathlib import Path
+from typing import List, Tuple
+
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from PIL import Image
+from torchvision.transforms import InterpolationMode
+
+import json
+# import matplotlib.pyplot as plt
+# import matplotlib.image as mpimg
+# import numpy as np
+# import PIL
+# from PIL import Image
+
 
 class VideoCaptionDataset(Dataset):
     """
@@ -23,35 +36,55 @@ class VideoCaptionDataset(Dataset):
         self.annotations = annotations
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.root = Path(feature_dir)
+
+        self.img_tf = transforms.Compose([
+            transforms.Resize(224),          # shortest side = 224
+            transforms.CenterCrop(224),      # 224 × 224 exactly
+            transforms.ToTensor(),           # 0‑1 float32
+        ])
 
     def __len__(self):
         return len(self.annotations)
+    
+    def _load_feature_or_image(self, vid: str) -> torch.Tensor:
+        """
+        Tries, in order:
+          <vid>.npy, <vid>.mp4.npy, <vid>.avi.npy  (legacy video features)
+          <vid>.<jpg|png|jpeg|bmp>                 (raw image)
+        """
+        # ---------- 1.  pre‑extracted .npy ----------
+        for suffix in [".npy", ".mp4.npy", ".avi.npy"]:
+            path = self.root / f"{vid}{suffix}"
+            if path.exists():
+                arr = np.load(path)
+                return torch.from_numpy(arr).float()
+
+        # ---------- 2.  raw image ----------
+        for ext in [".jpg", ".jpeg", ".png", ".bmp"]:
+            p = self.root / f"{vid}{ext}"
+            if p.exists():
+                return self.img_tf(Image.open(p).convert("RGB"))     
+
+        raise FileNotFoundError(f"No feature/image found for id '{vid}'")
+
 
     def __getitem__(self, idx):
-        video_id, caption_str = self.annotations[idx]
-        
-        # Load video features from .npy
-        feat_path = os.path.join(self.feature_dir, video_id + ".mp4.npy")
-        if not os.path.exists(feat_path):
-            # Try .avi or you can handle differently
-            feat_path = os.path.join(self.feature_dir, video_id + ".avi.npy")
-        
-        video_features = np.load(feat_path)  # shape depends on your pre-processing
-        video_features = torch.from_numpy(video_features).float()
-        
-        # Tokenize the caption
+        vid, caption = self.annotations[idx]
+
+        feats = self._load_feature_or_image(vid)    # tensor
+
         tokens = self.tokenizer(
-            caption_str,
+            caption,
             truncation=True,
             max_length=self.max_length,
             add_special_tokens=True,
-            return_tensors="pt"
+            return_tensors="pt",
         )
-        
-        input_ids = tokens["input_ids"].squeeze(0)      # shape: (seq_len)
-        attention_mask = tokens["attention_mask"].squeeze(0)  # shape: (seq_len)
+        input_ids      = tokens["input_ids"].squeeze(0)
+        attention_mask = tokens["attention_mask"].squeeze(0)
 
-        return video_features, input_ids, attention_mask
+        return feats, input_ids, attention_mask
 
 def collate_fn(batch):
     """
