@@ -1,7 +1,7 @@
 """
 get_coco.py  – hard‑path, script‑relative version
 -------------------------------------------------
-Download all images of **MS‑COCO 2014** *train* and
+Download tiny slices (default 10 images each) of **MS‑COCO 2014** *train* and
 *val* splits, then write two Python modules containing `TRAIN_ANNOTATIONS_COCO`
 and `VAL_ANNOTATIONS_COCO` so you can import them directly in `train.py` or
 `evaluate.py`.
@@ -12,10 +12,10 @@ Run:
 
 What happens
 ------------
-1. Creates output directories if they don't exist:
+1. Creates output directories if they don’t exist:
    * `<ROOT>/data/coco/train/`  (same path your training script already uses)
    * `Config.IMAGE_DIR_TEST`    (for validation images)
-2. Downloads all JPEGs from each split.
+2. Downloads **<NUM>** JPEGs from each split.
 3. Writes:
 
        data/coco/train/coco_train_annotations.py   → TRAIN_ANNOTATIONS_COCO
@@ -27,6 +27,8 @@ You can then do
 from data.coco.train.coco_train_annotations import TRAIN_ANNOTATIONS_COCO
 from data.coco.val.coco_val_annotations   import VAL_ANNOTATIONS_COCO
 ```
+
+Adjust `NUM` below if you want more (or fewer) samples.
 """
 
 from pathlib import Path
@@ -47,7 +49,7 @@ CAPTIONS_JSON_VAL   = ROOT / "data" / "coco" / "json" / "captions_val2014.json"
 OUT_DIR_TRAIN = ROOT / "data" / "coco" / "train"
 OUT_DIR_VAL   =  ROOT / "data" / "coco" / "val"         # e.g. data/coco/val
 
-# Removed NUM to download all images
+NUM = 100  # images per split
 # ────────────────────────────────────────────
 
 
@@ -55,7 +57,7 @@ OUT_DIR_VAL   =  ROOT / "data" / "coco" / "val"         # e.g. data/coco/val
 # Helper functions
 # -----------------------------------------------------------------------------
 
-def choose_examples(coco_json: Path) -> List[Tuple[str, str, str]]:
+def choose_examples(coco_json: Path, num: int = NUM) -> List[Tuple[str, str, str]]:
     """Return a list of *(file_stem, coco_url, caption)* tuples (first caption
     for each image)."""
     with coco_json.open("r") as f:
@@ -71,9 +73,8 @@ def choose_examples(coco_json: Path) -> List[Tuple[str, str, str]]:
         stem, url = id2img[img_id]
         examples.append((stem, url, ann["caption"].strip()))
         seen.add(img_id)
-        # Removed the limit check to get all images
-    
-    print(f"Found {len(examples)} unique images with captions")
+        if len(examples) == num:
+            break
     return examples
 
 
@@ -100,14 +101,12 @@ def process_split(captions_json: Path, out_dir: Path, var_name: str):
     if not captions_json.exists():
         raise FileNotFoundError(captions_json)
 
-    examples = choose_examples(captions_json)
+    examples = choose_examples(captions_json, NUM)
 
-    print(f"Downloading {len(examples)} images...")
-    for i, (stem, url, _) in enumerate(examples):
+    for stem, url, _ in examples:
         ext = url.split(".")[-1]  # usually 'jpg'
         dest = out_dir / f"{stem}.{ext}"
-        if i % 100 == 0:  # Print progress periodically
-            print(f"⬇  Downloading image {i}/{len(examples)}: {dest.relative_to(ROOT)}")
+        print(f"⬇  {dest.relative_to(ROOT)}")
         download(url, dest)
 
     save_annotation_py(examples, out_dir / f"{var_name.lower()}.py", var_name)
